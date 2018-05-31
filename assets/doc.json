@@ -1,0 +1,14 @@
+[
+    {
+        "insert": "Goodbye "
+    },
+    {
+        "insert": "World!",
+        "attributes": {
+            "bold": true
+        }
+    },
+    {
+        "insert": "\n"
+    }
+]
