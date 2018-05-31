@@ -51,13 +51,10 @@
 	    placeholder: 'Hello Denali. Would you like to play a game?'
 	});
 
-	console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-
 	const dummy = (() => {
 	    fetch('doc.json')
 	        .then(r => r.json())
 	        .then((initialDoc) => {
-	            console.log('the initial doc is \n', initialDoc)
 	            quill.setContents(initialDoc)
 	        })
 	})()

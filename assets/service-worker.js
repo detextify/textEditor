@@ -28,7 +28,7 @@ self.addEventListener('fetch', function (event) {
     // console.log('fetching ', event.request.url);
     const SERVER_TIMEOUT = 400
     const url = event.request.url
-    const cachePromise = caches.match(event.request)
+    const cachePromise = caches.match(event.request).catch(() => log('could find in cache ', url))
     log('attempting to fetch ', url)
 
     const fetchPromise = new Promise((resolve, reject) => {
@@ -37,43 +37,36 @@ self.addEventListener('fetch', function (event) {
         fetch(event.request)
             .then(response => {
                 clearTimeout(timeoutID)
-                log('fetched ', url)
+                // log('fetched ', url)
                 resolve(response.clone())
-                caches.open('app').then(cache => (log('caching ', url), cache.put(url, response.clone())))
+                caches.open('app').then(cache => (log('fetched and cached', url), cache.put(url, response.clone())))
                 return
             }).catch(() => {
-                log('fetching failed for ', url)
-                return 'failure'
-                // return self.registration.sync.register('sync app')
+                log('fetching failed for ', url, '\nscheduling sync')
+                self.registration.sync.register(url)
+                // console.log(registration)
             })
+    }).catch(() => {
+        log('loading from cache ', url)
+        return cachePromise
     })
-
-    fetchPromise.then(
-        (response) => {
-            //update cache
-            return response
-        },
-
-        () => {
-            log('loading cached asset ', cachePromise)
-            return true
-            return cachePromise.then(
-                response => (log(response ? `found response in cache ${JSON.stringify(response)}` : 'no response cached'), response),
-                (err) => log('could not load from cache ', err)
-            )
-        }
-    )
 
     event.respondWith(fetchPromise);
 });
 
-self.addEventListener('message', ({ data }) => {
-    //add to cache
-    self.registration.sync.register(data)
-})
 
 self.addEventListener('sync', function (event) {
-    console.log('syncing data ', event.tag)
-    caches.open('app').then(cache => cache.add(event.request))
-
+    console.log('syncing ', event.tag)
+    event.waitUntil(syncTest(event.tag));
 });
+
+function syncTest(url) {
+    return caches.open('app')
+        .then(cache => {
+            return cache.add(url);
+        })
+        .catch(() => {
+            log(`unable to sync ${url} `)
+            return Promise.reject('fail promise')
+        })
+}
